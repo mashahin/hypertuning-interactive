@@ -15,7 +15,7 @@ st.set_option('deprecation.showPyplotGlobalUse', False)
 st.set_page_config(page_title='ML Hyperparameter Tuning App', layout='wide')
 
 # load data
-df = pd.read_csv('heart.csv')
+df = pd.read_csv('data/heart.csv')
 
 # streamlit app
 st.write("""
@@ -36,9 +36,9 @@ split_size = st.sidebar.slider(
 
 st.sidebar.subheader('Learning Parameters')
 parameter_n_estimators = st.sidebar.slider(
-    'Number of estimators for Random Forest (n_estimators)', 100, 500, (100, 200), 50)
+    'Number of estimators for Random Forest (n_estimators)', 10, 500, (100, 200), 50)
 parameter_n_estimators_step = st.sidebar.number_input(
-    'Step size for n_estimators', 10)
+    'Step size for n_estimators', 10, 50, 10, 10)
 
 st.sidebar.write('---')
 parameter_max_features = st.sidebar.multiselect(
@@ -46,29 +46,28 @@ parameter_max_features = st.sidebar.multiselect(
 
 parameter_max_depth = st.sidebar.slider('Maximum depth', 5, 15, (5, 8), 2)
 parameter_max_depth_step = st.sidebar.number_input(
-    'Step size for max depht', 1, 3)
+    'Step size for max depth', 1, 3)
 
 st.sidebar.write('---')
 parameter_criterion = st.sidebar.selectbox('criterion', ('gini', 'entropy'))
 
 st.sidebar.write('---')
 parameter_cross_validation = st.sidebar.slider(
-    'Number of Cross validation split', 2, 10)
+    'Number of Cross validation split', 2, 10, 5, 1)
 
 st.sidebar.subheader('Other Parameters')
-parameter_random_state = st.sidebar.slider(
-    'Seed number (random_state)', 0, 1000, 42, 1)
-parameter_bootstrap = st.sidebar.select_slider(
-    'Bootstrap samples when building trees (bootstrap)', options=[True, False])
-parameter_n_jobs = st.sidebar.select_slider(
+parameter_random_state = st.sidebar.number_input(
+    'Enter Seed number (random_state)', 0, 1000, 42)
+parameter_bootstrap = st.sidebar.selectbox('Bootstrap Samples', [True, False])
+parameter_n_jobs = st.sidebar.selectbox(
     'Number of jobs to run in parallel (n_jobs)', options=[1, -1])
 
 n_estimators_range = np.arange(
     parameter_n_estimators[0], parameter_n_estimators[1]+parameter_n_estimators_step, parameter_n_estimators_step)
-"""
-if parameter_n_estimators[0] is 5 and parameter_n_estimators[1] 25 and parameter_n_estimators_step is 5
-then array will be [5,10,15,20,25]
-"""
+# """
+# if parameter_n_estimators[0] is 5 and parameter_n_estimators[1] 25 and parameter_n_estimators_step is 5
+# then array will be [5,10,15,20,25]
+# """
 max_depth_range = np.arange(
     parameter_max_depth[0], parameter_max_depth[1]+parameter_max_depth_step, parameter_max_depth_step)
 param_grid = dict(max_features=parameter_max_features,
@@ -79,26 +78,31 @@ def model(dataset):
     print('Model building...')
     Y = dataset['target']
     X = dataset.drop(['target'], axis=1)
+
     # Data splitting
     X_train, X_test, Y_train, Y_test = train_test_split(
         X, Y, test_size=split_size, random_state=parameter_random_state)
+
     sc = StandardScaler()
     X_train = sc.fit_transform(X_train)
     X_test = sc.transform(X_test)
-    st.write(split_size, '% data for Training')
+    # st.write(split_size, '% data for Training')
+
     rf = RandomForestClassifier(random_state=parameter_random_state,
                                 bootstrap=parameter_bootstrap,
                                 n_jobs=parameter_n_jobs)
     grid = GridSearchCV(estimator=rf, param_grid=param_grid,
                         cv=parameter_cross_validation)
     grid.fit(X_train, Y_train)
+    # grid.best_estimator_
+
     st.subheader('Model Performance')
     Y_pred_test = grid.predict(X_test)
     st.write('Accuracy score of given model')
-    st.info(accuracy_score(Y_test, Y_pred_test))
-    st.write("The best parameters are %s with a score of %0.2f" %
+    st.write(accuracy_score(Y_test, Y_pred_test))
+    st.write("The best parameters are %s with a score of %0.4f" %
              (grid.best_params_, grid.best_score_))
-    st.write(grid.get_params())
+    # st.write(grid.get_params())
 
     # build 3D visualizer
     #-----Process grid data-----#
@@ -162,5 +166,5 @@ if st.button('Build Model'):
     print('Button pressed...')
     dataset = pd.get_dummies(
         df, columns=['sex', 'cp', 'fbs', 'restecg', 'exang', 'slope', 'ca', 'thal'])
-    # st.write(dataset.head(5))
+    # st.write(dataset['target'].value_counts())
     model(dataset)
