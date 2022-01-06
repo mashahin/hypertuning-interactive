@@ -2,11 +2,13 @@
 
 ## Getting Started
 
+>
 > streamlit run app.py
+>
 
 ![plot](./images/GridSearchHyperTuning.png)
 
-![plot](./ConfusionMatrix.png)
+![plot](./images/ConfusionMatrix.png)
 
 
 
